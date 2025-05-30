@@ -1,0 +1,484 @@
+<!-- File: templates/result.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title style="color: #ffffff;">Prediction Result</title>
+    <script src="{{ url_for('static', filename='js/plotly-latest.min.js') }}"></script>
+    <script>
+        // Function to toggle statistics
+        function toggleStats() {
+            const statsInfo = document.getElementById('stats-info');
+            const button = document.querySelector('.toggle-stats');
+            
+            if (statsInfo.style.display === 'none') {
+                statsInfo.style.display = 'flex';
+                button.textContent = 'Hide Statistics';
+            } else {
+                statsInfo.style.display = 'none';
+                button.textContent = 'Show Statistics';
+            }
+        }
+
+        // Ensure Plotly buttons are visible
+        document.addEventListener('DOMContentLoaded', function() {
+            const buttons = document.querySelectorAll('.plotly-play, .plotly-pause');
+            buttons.forEach(button => {
+                button.style.display = 'inline-block';
+            });
+        });
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: {% if prediction_type == 'Efficiency' %}#3498db{% else %}#e74c3c{% endif %};
+            --primary-hover: {% if prediction_type == 'Efficiency' %}#2980b9{% else %}#c0392b{% endif %};
+            --efficiency-color: {% if prediction_type == 'Efficiency' %}#3498db{% else %}#f0f0f0{% endif %};
+            --efficiency-text: {% if prediction_type == 'Efficiency' %}white{% else %}#333{% endif %};
+            --efficiency-active: #3498db;
+            --egrid-color: {% if prediction_type == 'E_Grid' %}#e74c3c{% else %}#f0f0f0{% endif %};
+            --egrid-text: {% if prediction_type == 'E_Grid' %}white{% else %}#333{% endif %};
+            --egrid-active: #e74c3c;
+            --secondary-color: #2c3e50;
+            --light-bg: #f8f9fa;
+            --border-color: #e0e6ed;
+            --text-color: #ffffff;
+            --text-light: #7f8c8d;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            --border-radius: 12px;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            padding: 0;
+            color: var(--text-color);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .video-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            object-fit: cover;
+        }
+
+        .video-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .video-overlay {
+            display: none;
+        }
+
+        .container {
+            position: relative;
+            padding: 40px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 1000px;
+            margin: 20px 0;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            background: rgba(0, 0, 0, 0.1);
+            color: #fff;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            z-index: -1;
+        }
+
+        .container:hover {
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .plot-container {
+            margin: 30px 0;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            position: relative;
+            min-height: 450px;
+        }
+
+        h1 {
+            color: #ffffff;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+            font-weight: 700;
+            position: relative;
+            padding-bottom: 15px;
+        }
+
+        h1::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+            transform: translateX(-50%);
+            width: 70px;
+            height: 4px;
+            background-color: var(--primary-color);
+            border-radius: 2px;
+        }
+
+        .prediction-info {
+            margin-bottom: 30px;
+            font-size: 1.2em;
+            color: #ffffff;
+        }
+
+        .prediction-info strong {
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .stats-container {
+            margin: 30px 0;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stats-info {
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            padding: 25px;
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-top: 20px;
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            background: rgba(255, 255, 255, 0.1);
+            color: #333;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 0.95em;
+            color: #333;
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-item strong {
+            color: #333;
+            font-weight: 500;
+            margin-right: 10px;
+        }
+        
+        .stat-item span {
+            color: var(--text-color);
+            text-align: right;
+        }
+
+        .plot-container {
+            margin-top: 20px;
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            background-color: #fff;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+            overflow: visible;
+            position: relative;
+        }
+
+        .stats-info {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        .control-buttons {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 0 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        .control-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .control-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);
+        }
+
+        .control-btn i {
+            font-size: 18px;
+            margin-right: 8px;
+        }
+
+        .pause-btn {
+            background: #f44336;
+        }
+
+        .pause-btn:hover {
+            background: #e53935;
+        }
+
+        /* View mode toggle styles */
+        .view-mode-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .toggle-container {
+            display: flex;
+            background: #f0f0f0;
+            border-radius: 20px;
+            padding: 2px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .toggle-btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 18px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        #toggle-efficiency.active {
+            background: #3498db;
+            color: white;
+        }
+        
+        #toggle-egrid.active {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .toggle-stats {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+            margin-bottom: 15px;
+        }
+
+        .toggle-stats:hover {
+            background: linear-gradient(135deg, #45a049, #4CAF50);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .toggle-stats:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);
+        }
+
+        .control-btn i {
+            font-size: 16px;
+        }
+
+        /* Style for the link back to home */
+        p a {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 15px;
+            background-color: #6c757d;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        p a:hover {
+            background-color: #5a6268;
+        }
+
+        /* Basic responsive adjustments */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 1.6em;
+            }
+            .prediction-info {
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="video-container">
+        <video class="video-background" autoplay muted loop>
+            <source src="{{ url_for('static', filename='video/earth.mp4') }}" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+    <div class="video-overlay"></div>
+    <div class="container">
+        <h1>Prediction Result</h1>
+
+        <div class="prediction-info">
+            <div class="view-mode-container">
+                <span>View Mode:</span>
+                <div class="toggle-container">
+                    <button id="toggle-efficiency" class="toggle-btn {% if prediction_type == 'Efficiency' %}active{% endif %}" 
+                            onclick="switchView('efficiency')">
+                        Efficiency
+                    </button>
+                    <button id="toggle-egrid" class="toggle-btn {% if prediction_type == 'E_Grid' %}active{% endif %}" 
+                            onclick="switchView('egrid')">
+                        E_Grid
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="plot-container">
+            {{ plot|safe }}
+        </div>
+
+        <div class="stats-container">
+            <button class="toggle-stats" style="background-color: {% if prediction_type == 'Efficiency' %}#007bff{% else %}#dc3545{% endif %}; color: white; border: none; padding: 12px 24px; border-radius: 25px; font-weight: 600; font-size: 16px; cursor: pointer; transition: all 0.3s ease;" onclick="toggleStats()">
+                Show Statistics
+            </button>
+            <div class="stats-info" id="stats-info" style="display: none;">
+                <div class="stat-item">
+                    <strong>Max Value:</strong> {{ max_value }}
+                </div>
+                <div class="stat-item">
+                    <strong>Mean Value:</strong> {{ mean_value }}
+                </div>
+                <div class="stat-item">
+                    <strong>Min Value:</strong> {{ min_value }}
+                </div>
+                <div class="stat-item">
+                    <strong>Date of max value:</strong> {{ max_date }}
+                </div>
+                <div class="stat-item">
+                    <strong>Date of min value:</strong> {{ min_date }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div style="text-align: center; margin-top: 15px;">
+        <button onclick="goBack()" class="control-btn" style="margin-bottom: 20px;">
+            <i class="fas fa-arrow-left"></i>
+            Back to Upload
+        </button>
+    </div>
+    <script>
+        function switchView(viewType) {
+            // Get the current URL and update the prediction_type parameter
+            const url = new URL(window.location.href);
+            
+            // If we're already on the same view, do nothing
+            if (url.searchParams.get('prediction_type') === viewType) {
+                return;
+            }
+            
+            // Update the URL with the new view type
+            url.searchParams.set('prediction_type', viewType);
+            
+            // Store the selected view in localStorage for the next session
+            localStorage.setItem('lastPredictionType', viewType);
+            
+            // Redirect to the same page with the new prediction type
+            window.location.href = url.toString();
+        }
+
+        function goBack() {
+            // Store the prediction type in localStorage
+            localStorage.setItem('lastPredictionType', '{{ prediction_type }}');
+            
+            // Go back to the index page
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

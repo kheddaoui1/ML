@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Prediction Result</title>
+    <title style="color: #ffffff;">Prediction Result</title>
     <script src="{{ url_for('static', filename='js/plotly-latest.min.js') }}"></script>
     <script>
         // Function to toggle statistics
@@ -33,10 +33,16 @@
         :root {
             --primary-color: {% if prediction_type == 'Efficiency' %}#3498db{% else %}#e74c3c{% endif %};
             --primary-hover: {% if prediction_type == 'Efficiency' %}#2980b9{% else %}#c0392b{% endif %};
+            --efficiency-color: {% if prediction_type == 'Efficiency' %}#3498db{% else %}#f0f0f0{% endif %};
+            --efficiency-text: {% if prediction_type == 'Efficiency' %}white{% else %}#333{% endif %};
+            --efficiency-active: #3498db;
+            --egrid-color: {% if prediction_type == 'E_Grid' %}#e74c3c{% else %}#f0f0f0{% endif %};
+            --egrid-text: {% if prediction_type == 'E_Grid' %}white{% else %}#333{% endif %};
+            --egrid-active: #e74c3c;
             --secondary-color: #2c3e50;
             --light-bg: #f8f9fa;
             --border-color: #e0e6ed;
-            --text-color: #2d3436;
+            --text-color: #ffffff;
             --text-light: #7f8c8d;
             --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
             --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
@@ -135,7 +141,7 @@
         }
 
         h1 {
-            color: var(--secondary-color);
+            color: #ffffff;
             margin-bottom: 30px;
             font-size: 2.2em;
             font-weight: 700;
@@ -158,11 +164,11 @@
         .prediction-info {
             margin-bottom: 30px;
             font-size: 1.2em;
-            color: var(--text-light);
+            color: #ffffff;
         }
 
         .prediction-info strong {
-            color: var(--secondary-color);
+            color: #ffffff;
             font-weight: 600;
         }
 
@@ -289,8 +295,46 @@
             background: #e53935;
         }
 
+        /* View mode toggle styles */
+        .view-mode-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .toggle-container {
+            display: flex;
+            background: #f0f0f0;
+            border-radius: 20px;
+            padding: 2px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .toggle-btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 18px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        #toggle-efficiency.active {
+            background: #3498db;
+            color: white;
+        }
+        
+        #toggle-egrid.active {
+            background: #e74c3c;
+            color: white;
+        }
+        
         .toggle-stats {
-            background-color: {% if prediction_type == 'Efficiency' %}#007bff{% else %}#dc3545{% endif %};
+            background-color: var(--primary-color);
             color: white;
             border: none;
             padding: 12px 24px;
@@ -360,7 +404,19 @@
         <h1>Prediction Result</h1>
 
         <div class="prediction-info">
-            Prediction Type: <strong>{{ prediction_type }}</strong>
+            <div class="view-mode-container">
+                <span>View Mode:</span>
+                <div class="toggle-container">
+                    <button id="toggle-efficiency" class="toggle-btn {% if prediction_type == 'Efficiency' %}active{% endif %}" 
+                            onclick="switchView('efficiency')">
+                        Efficiency
+                    </button>
+                    <button id="toggle-egrid" class="toggle-btn {% if prediction_type == 'E_Grid' %}active{% endif %}" 
+                            onclick="switchView('egrid')">
+                        E_Grid
+                    </button>
+                </div>
+            </div>
         </div>
 
         <div class="plot-container">
@@ -382,13 +438,47 @@
                     <strong>Min Value:</strong> {{ min_value }}
                 </div>
                 <div class="stat-item">
-                    <strong>Max Date:</strong> {{ max_date }}
+                    <strong>Date of max value:</strong> {{ max_date }}
                 </div>
                 <div class="stat-item">
-                    <strong>Min Date:</strong> {{ min_date }}
+                    <strong>Date of min value:</strong> {{ min_date }}
                 </div>
             </div>
         </div>
     </div>
+    <div style="text-align: center; margin-top: 15px;">
+        <button onclick="goBack()" class="control-btn" style="margin-bottom: 20px;">
+            <i class="fas fa-arrow-left"></i>
+            Back to Upload
+        </button>
+    </div>
+    <script>
+        function switchView(viewType) {
+            // Get the current URL and update the prediction_type parameter
+            const url = new URL(window.location.href);
+            
+            // If we're already on the same view, do nothing
+            if (url.searchParams.get('prediction_type') === viewType) {
+                return;
+            }
+            
+            // Update the URL with the new view type
+            url.searchParams.set('prediction_type', viewType);
+            
+            // Store the selected view in localStorage for the next session
+            localStorage.setItem('lastPredictionType', viewType);
+            
+            // Redirect to the same page with the new prediction type
+            window.location.href = url.toString();
+        }
+
+        function goBack() {
+            // Store the prediction type in localStorage
+            localStorage.setItem('lastPredictionType', '{{ prediction_type }}');
+            
+            // Go back to the index page
+            window.location.href = '/';
+        }
+    </script>
 </body>
 </html>

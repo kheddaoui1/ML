@@ -1,0 +1,204 @@
+<!-- File: templates/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Solar Prediction</title>
+    <!-- Link to local Montserrat font -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='fonts/montserrat.css') }}">
+    <style>
+        body {
+            /* Using local Montserrat font */
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #ffffff; /* Set default text color to white */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            /* Background Image Styling */
+            background-image: url('{{ url_for('static', filename='images/solar.jpg') }}'); /* Updated path to your image */
+            background-size: cover; /* Cover the entire background */
+            background-position: center; /* Center the image */
+            background-repeat: no-repeat; /* Do not repeat the image */
+            background-attachment: fixed; /* Fix the background image */
+            position: relative; /* Needed for the ::before pseudo-element positioning */
+        }
+
+        /* Add a white overlay with slight blur */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.3); /* Semi-transparent black background (30% opacity) */
+            backdrop-filter: blur(3px); /* Apply slight blur to the area behind the overlay */
+            -webkit-backdrop-filter: blur(3px); /* Safari support */
+            z-index: 1; /* Place overlay above background image */
+        }
+
+        .container {
+            /* Glassmorphism styles */
+            background-color: rgba(255, 255, 255, 0.15); /* Semi-transparent white background */
+            backdrop-filter: blur(10px); /* Apply blur effect to the background */
+            -webkit-backdrop-filter: blur(10px); /* Safari support */
+            border: 1px solid rgba(255, 255, 255, 0.2); /* Subtle white border */
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1); /* Adjusted shadow for glass look */
+
+            padding: 40px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            position: relative;
+            z-index: 2; /* Place container above the overlay */
+        }
+
+        h1 {
+            background: linear-gradient(135deg, #ff9800, #ff5722); color: transparent; -webkit-background-clip: text; background-clip: text;
+            margin-bottom: 30px;
+            font-size: 1.8em;
+            /* Font-family inherited from body, text-transform kept */
+            text-transform: uppercase; /* Keep text uppercase */
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        /* Style the label to look like a button */
+        label {
+            display: block; /* Changed to block for better layout control */
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #ffffff; /* Set label color to white */
+            cursor: pointer; /* Indicate it's clickable */
+        }
+
+        /* Hide the default file input */
+        input[type="file"] {
+            display: none; /* Hide the default input */
+        }
+
+        /* Style a custom button/area for the file input */
+        .custom-file-upload {
+            display: inline-block; /* Or block, depending on desired layout */
+            padding: 10px 15px;
+            background-color: rgba(255, 255, 255, 0.2); /* Semi-transparent background */
+            color: #ffffff; /* White text */
+            border: 1px solid rgba(255, 255, 255, 0.3); /* Subtle border */
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 20px; /* Space below the custom input */
+            width: 100%; /* Make it full width */
+            box-sizing: border-box; /* Include padding and border in width */
+            text-align: center; /* Center the text */
+            transition: background-color 0.3s ease;
+        }
+
+        .custom-file-upload:hover {
+            background-color: rgba(255, 255, 255, 0.3); /* Slightly more opaque on hover */
+        }
+
+        .file-name {
+            margin-top: 5px;
+            font-size: 0.9em;
+            color: #ffffff;
+            text-align: center;
+            width: 100%;
+        }
+
+
+        .prediction-options {
+            margin-bottom: 20px;
+            width: 100%;
+            /* Centered the text and inline-block elements within this div */
+            text-align: center;
+        }
+
+        .prediction-options label {
+            display: inline-block;
+            margin-right: 20px;
+            font-weight: normal;
+            cursor: pointer;
+            color: #ffffff; /* Set radio button label color to white */
+        }
+
+        .prediction-options input[type="radio"] {
+            margin-right: 5px;
+            /* Added vertical alignment for radio buttons */
+            vertical-align: middle;
+        }
+
+        button {
+            padding: 12px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: background-color 0.3s ease;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('file-upload');
+            const fileNameDisplay = document.getElementById('file-name');
+            
+            if (fileInput && fileNameDisplay) {
+                fileInput.addEventListener('change', function(e) {
+                    if (e.target.files.length > 0) {
+                        fileNameDisplay.textContent = e.target.files[0].name;
+                    }
+                });
+            }
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <!-- Removed language switcher -->
+
+        <h1>Upload Weather Data for Solar Prediction</h1>
+        <form action="/predict" method="post" enctype="multipart/form-data">
+            <!-- Wrap label and input for custom styling -->
+            <label for="file-upload" class="custom-file-upload">
+                Select CSV File
+            </label>
+            <input type="file" name="file" id="file-upload" accept=".csv" required>
+            <div class="file-name" id="file-name" style="margin-top: -5px;">No file selected</div>
+
+            <div class="prediction-options" style="margin-top: 20px;">
+                <label style="display: block; margin-bottom: 10px;">Choose Prediction Type:</label>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <div>
+                        <input type="radio" id="efficiency" name="prediction_type" value="efficiency" checked>
+                        <label for="efficiency">Efficiency</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="egrid" name="prediction_type" value="egrid">
+                        <label for="egrid">E_Grid</label>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit">Predict</button>
+            <div style="margin-top: 30px; font-size: 0.7em; color: #ffffff; width: 100%;">
+                <div style="text-align: center;">
+                    Created by <span style="font-style: italic;">Kheddaoui Abdelkader</span> and <span style="font-style: italic;">Bensaraoui Ilyes Mustapha</span>
+                </div>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

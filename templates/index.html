@@ -86,22 +86,32 @@
 
         /* Style a custom button/area for the file input */
         .custom-file-upload {
-            display: inline-block; /* Or block, depending on desired layout */
+            position: relative;
+            display: inline-block;
             padding: 10px 15px;
-            background-color: rgba(255, 255, 255, 0.2); /* Semi-transparent background */
-            color: #ffffff; /* White text */
-            border: 1px solid rgba(255, 255, 255, 0.3); /* Subtle border */
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 5px;
             cursor: pointer;
-            margin-bottom: 20px; /* Space below the custom input */
-            width: 100%; /* Make it full width */
-            box-sizing: border-box; /* Include padding and border in width */
-            text-align: center; /* Center the text */
+            margin-bottom: 20px;
+            width: 100%;
+            text-align: center;
             transition: background-color 0.3s ease;
         }
 
         .custom-file-upload:hover {
-            background-color: rgba(255, 255, 255, 0.3); /* Slightly more opaque on hover */
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .custom-file-upload input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
         }
 
         .file-name {
@@ -110,6 +120,47 @@
             color: #ffffff;
             text-align: center;
             width: 100%;
+            padding: 5px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        .file-name:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        button {
+            padding: 12px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: background-color 0.3s ease;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .file-name {
+            margin-top: 5px;
+            font-size: 0.9em;
+            color: #ffffff;
+            text-align: center;
+            width: 100%;
+            padding: 5px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        .file-name:hover {
+            background-color: rgba(255, 255, 255, 0.2);
         }
 
 
@@ -151,17 +202,41 @@
         }
     </style>
     <script>
+        function useDefaultData() {
+            const predictionType = document.querySelector('input[name="prediction_type"]:checked').value;
+            window.location.href = `/predict?use_default=true&prediction_type=${predictionType}`;
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const fileInput = document.getElementById('file-upload');
             const fileNameDisplay = document.getElementById('file-name');
+            const uploadButton = document.querySelector('.custom-file-upload');
             
-            if (fileInput && fileNameDisplay) {
+            if (fileInput && fileNameDisplay && uploadButton) {
+                // Add click handler to the upload button
+                uploadButton.addEventListener('click', function(e) {
+                    fileInput.click();
+                });
+
+                // Handle file selection
                 fileInput.addEventListener('change', function(e) {
                     if (e.target.files.length > 0) {
                         fileNameDisplay.textContent = e.target.files[0].name;
+                        uploadButton.querySelector('span').textContent = 'File Selected';
+                        // Store the file name in localStorage
+                        localStorage.setItem('uploadedFile', e.target.files[0].name);
+                    } else {
+                        fileNameDisplay.textContent = 'No file selected';
+                        uploadButton.querySelector('span').textContent = 'Select CSV File';
+                        localStorage.removeItem('uploadedFile');
                     }
                 });
             }
+
+            // Clear localStorage when form is submitted
+            document.querySelector('form').addEventListener('submit', function(e) {
+                localStorage.removeItem('uploadedFile');
+            });
         });
     </script>
 </head>
@@ -170,13 +245,29 @@
         <!-- Removed language switcher -->
 
         <h1>Upload Weather Data for Solar Prediction</h1>
+        {% if error %}
+        <div class="error-message" style="background-color: rgba(255, 0, 0, 0.2); color: #ffdddd; padding: 12px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #ff4444;">
+            {{ error }}
+        </div>
+        {% endif %}
         <form action="/predict" method="post" enctype="multipart/form-data">
             <!-- Wrap label and input for custom styling -->
-            <label for="file-upload" class="custom-file-upload">
-                Select CSV File
-            </label>
-            <input type="file" name="file" id="file-upload" accept=".csv" required>
-            <div class="file-name" id="file-name" style="margin-top: -5px;">No file selected</div>
+            <div class="custom-file-upload">
+                <input type="file" name="file" id="file-upload" accept=".csv,.xlsx,.xls" required>
+                <span>Select CSV File</span>
+            </div>
+            <div class="file-name" id="file-name">No file selected</div>
+
+            
+            {% if default_data_available %}
+            <div style="text-align: center; margin: 15px 0; color: #ffffff; font-size: 0.9em;">
+                <span>OR</span>
+            </div>
+            
+            <button type="button" id="Tiaret-weather-data-preload" style="background-color: #28a745; margin-top: 0;" onclick="useDefaultData()">
+                Use Preload Tiaret Data File
+            </button>
+            {% endif %}
 
             <div class="prediction-options" style="margin-top: 20px;">
                 <label style="display: block; margin-bottom: 10px;">Choose Prediction Type:</label>
@@ -195,7 +286,7 @@
             <button type="submit">Predict</button>
             <div style="margin-top: 30px; font-size: 0.7em; color: #ffffff; width: 100%;">
                 <div style="text-align: center;">
-                    Created by <span style="font-style: italic;">Kheddaoui Abdelkader</span> and <span style="font-style: italic;">Bensaraoui Ilyes</span>
+                    Created by <span style="font-style: italic;">Kheddaoui Abdelkader</span> and <span style="font-style: italic;">Bensaraoui Ilyes Mustapha</span>
                 </div>
             </div>
         </form>
